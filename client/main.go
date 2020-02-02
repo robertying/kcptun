@@ -8,13 +8,14 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"strconv"
 	"time"
 
 	"golang.org/x/crypto/pbkdf2"
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
-	kcp "github.com/xtaci/kcp-go/v5"
+	"github.com/xtaci/kcp-go/v5"
 	"github.com/xtaci/kcptun/generic"
 	"github.com/xtaci/smux"
 )
@@ -26,6 +27,7 @@ const (
 	maxSmuxVer = 2
 	// stream copy buffer size
 	bufSize = 4096
+	VpnMode = false
 )
 
 // VERSION is injected by buildflags
@@ -34,9 +36,9 @@ var VERSION = "SELFBUILD"
 // handleClient aggregates connection p1 on mux with 'writeLock'
 func handleClient(session *smux.Session, p1 net.Conn, quiet bool) {
 	logln := func(v ...interface{}) {
-		if !quiet {
-			log.Println(v...)
-		}
+		// if !quiet {
+		// 	log.Println(v...)
+		// }
 	}
 	defer p1.Close()
 	p2, err := session.OpenStream()
@@ -118,7 +120,7 @@ func main() {
 		},
 		cli.IntFlag{
 			Name:  "autoexpire",
-			Value: 0,
+			Value: 10,
 			Usage: "set auto expiration time(in seconds) for a single UDP connection, 0 to disable",
 		},
 		cli.IntFlag{
@@ -238,9 +240,18 @@ func main() {
 			Value: "", // when the value is not empty, the config path must exists
 			Usage: "config from json file, which will override the command from shell",
 		},
+		cli.BoolFlag{
+			Name:  "fast-open",
+			Usage: "Dummy flag, doesn't really do anything",
+		},
+		cli.BoolFlag{
+			Name:  "V",
+			Usage: "Enable VPN mode for shadowsocks-android",
+		},
 	}
 	myApp.Action = func(c *cli.Context) error {
 		config := Config{}
+
 		config.LocalAddr = c.String("localaddr")
 		config.RemoteAddr = c.String("remoteaddr")
 		config.Key = c.String("key")
@@ -271,10 +282,137 @@ func main() {
 		config.SnmpPeriod = c.Int("snmpperiod")
 		config.Quiet = c.Bool("quiet")
 		config.TCP = c.Bool("tcp")
+		config.Vpn = c.Bool("V")
 
 		if c.String("c") != "" {
 			err := parseJSONConfig(&config, c.String("c"))
 			checkError(err)
+		}
+
+		opts, err := parseEnv()
+		if err == nil {
+			fmt.Printf("test")
+			if c, b := opts.Get("localaddr"); b {
+				config.LocalAddr = c
+			}
+			if c, b := opts.Get("remoteaddr"); b {
+				config.RemoteAddr = c
+			}
+			if c, b := opts.Get("key"); b {
+				config.Key = c
+			}
+			if c, b := opts.Get("crypt"); b {
+				config.Crypt = c
+			}
+			if c, b := opts.Get("mode"); b {
+				config.Mode = c
+			}
+			if c, b := opts.Get("conn"); b {
+				if conn, err := strconv.Atoi(c); err == nil {
+					config.Conn = conn
+				}
+			}
+			if c, b := opts.Get("autoexpire"); b {
+				if autoexpire, err := strconv.Atoi(c); err == nil {
+					config.AutoExpire = autoexpire
+				}
+			}
+			if c, b := opts.Get("scavengettl"); b {
+				if scavengettl, err := strconv.Atoi(c); err == nil {
+					config.ScavengeTTL = scavengettl
+				}
+			}
+			if c, b := opts.Get("mtu"); b {
+				if mtu, err := strconv.Atoi(c); err == nil {
+					config.MTU = mtu
+				}
+			}
+			if c, b := opts.Get("sndwnd"); b {
+				if sndwnd, err := strconv.Atoi(c); err == nil {
+					config.SndWnd = sndwnd
+				}
+			}
+			if c, b := opts.Get("rcvwnd"); b {
+				if rcvwnd, err := strconv.Atoi(c); err == nil {
+					config.RcvWnd = rcvwnd
+				}
+			}
+			if c, b := opts.Get("datashard"); b {
+				if datashard, err := strconv.Atoi(c); err == nil {
+					config.DataShard = datashard
+				}
+			}
+			if c, b := opts.Get("parityshard"); b {
+				if parityshard, err := strconv.Atoi(c); err == nil {
+					config.ParityShard = parityshard
+				}
+			}
+			if c, b := opts.Get("dscp"); b {
+				if dscp, err := strconv.Atoi(c); err == nil {
+					config.DSCP = dscp
+				}
+			}
+			if c, b := opts.Get("nocomp"); b {
+				if nocomp, err := strconv.ParseBool(c); err == nil {
+					config.NoComp = nocomp
+				}
+			}
+			if c, b := opts.Get("acknodelay"); b {
+				if acknodelay, err := strconv.ParseBool(c); err == nil {
+					config.AckNodelay = acknodelay
+				}
+			}
+			if c, b := opts.Get("nodelay"); b {
+				if nodelay, err := strconv.Atoi(c); err == nil {
+					config.NoDelay = nodelay
+				}
+			}
+			if c, b := opts.Get("interval"); b {
+				if interval, err := strconv.Atoi(c); err == nil {
+					config.Interval = interval
+				}
+			}
+			if c, b := opts.Get("resend"); b {
+				if resend, err := strconv.Atoi(c); err == nil {
+					config.Resend = resend
+				}
+			}
+			if c, b := opts.Get("nc"); b {
+				if nc, err := strconv.Atoi(c); err == nil {
+					config.NoCongestion = nc
+				}
+			}
+			if c, b := opts.Get("sockbuf"); b {
+				if sockbuf, err := strconv.Atoi(c); err == nil {
+					config.SockBuf = sockbuf
+				}
+			}
+			if c, b := opts.Get("keepalive"); b {
+				if keepalive, err := strconv.Atoi(c); err == nil {
+					config.KeepAlive = keepalive
+				}
+			}
+			if c, b := opts.Get("log"); b {
+				config.Log = c
+			}
+			if c, b := opts.Get("snmplog"); b {
+				config.SnmpLog = c
+			}
+			if c, b := opts.Get("snmpperiod"); b {
+				if snmpperiod, err := strconv.Atoi(c); err == nil {
+					config.SnmpPeriod = snmpperiod
+				}
+			}
+			if c, b := opts.Get("quiet"); b {
+				if quiet, err := strconv.ParseBool(c); err == nil {
+					config.Quiet = quiet
+				}
+			}
+			if c, b := opts.Get("V"); b {
+				if vpn, err := strconv.ParseBool(c); err == nil {
+					config.Vpn = vpn
+				}
+			}
 		}
 
 		// log redirect
@@ -435,6 +573,7 @@ func main() {
 		chScavenger := make(chan *smux.Session, 128)
 		go scavenger(chScavenger, config.ScavengeTTL)
 		go generic.SnmpLogger(config.SnmpLog, config.SnmpPeriod)
+		go parentMonitor(3)
 		rr := uint16(0)
 		for {
 			p1, err := listener.AcceptTCP()
@@ -460,6 +599,25 @@ func main() {
 type scavengeSession struct {
 	session *smux.Session
 	ts      time.Time
+}
+
+const (
+	maxScavengeTTL = 10 * time.Minute
+)
+
+func parentMonitor(interval int) {
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
+	defer ticker.Stop()
+	pid := os.Getppid()
+	for {
+		select {
+		case <-ticker.C:
+			curpid := os.Getppid()
+			if curpid != pid {
+				os.Exit(1)
+			}
+		}
+	}
 }
 
 func scavenger(ch chan *smux.Session, ttl int) {
