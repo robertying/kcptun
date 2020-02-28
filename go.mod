@@ -9,6 +9,7 @@ require (
 	github.com/tjfoc/gmsm v1.3.0 // indirect
 	github.com/urfave/cli v1.21.0
 	github.com/xtaci/kcp-go/v5 v5.5.8
+	github.com/xtaci/kcptun v0.0.0-20200225030058-8115fe5db94e
 	github.com/xtaci/smux v1.5.12
 	github.com/xtaci/tcpraw v1.2.25
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d

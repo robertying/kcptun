@@ -71,7 +71,7 @@ import (
     "net"
 	"syscall"
 	"github.com/pkg/errors"
-	"github.com/xtaci/kcp-go"
+	"github.com/xtaci/kcp-go/v5"
 )
 
 func ControlOnConnSetup(network string, address string, c syscall.RawConn) error {
