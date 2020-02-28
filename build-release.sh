@@ -27,9 +27,6 @@ VERSION=`date -u +%Y%m%d`
 LDFLAGS="-X main.VERSION=$VERSION -s -w"
 GCFLAGS=""
 
-go get -u github.com/robertying/kcptun
-go get -u ./...
-
 # AMD64
 OSES=(linux darwin windows freebsd)
 for os in ${OSES[@]}; do
